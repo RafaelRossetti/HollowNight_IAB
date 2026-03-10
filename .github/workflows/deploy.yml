@@ -1,0 +1,52 @@
+# Fluxo de trabalho simples para construir e implantar um projeto Vite no GitHub Pages
+name: Deploy static content to Pages
+
+on:
+  # É executado em pushes direcionados à branch padrão
+  push:
+    branches: ['main', 'master']
+
+  # Permite que você execute este fluxo de trabalho manualmente a partir da aba Actions
+  workflow_dispatch:
+
+# Define as permissões do GITHUB_TOKEN para permitir a implantação no GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Permite apenas uma implantação simultânea, ignorando as execuções em andamento e as mais recentes em fila.
+# No entanto, NÃO cancele as execuções em andamento, pois queremos que essas implantações em produção sejam concluídas.
+concurrency:
+  group: 'pages'
+  cancel-in-progress: false
+
+jobs:
+  # Trabalho de construção único
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Faz o upload da pasta dist
+          path: './dist'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
